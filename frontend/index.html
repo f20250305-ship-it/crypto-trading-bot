@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ApexTrade • Autonomous Crypto Paper Trading Bot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- Top Navigation -->
+  <header class="top-nav">
+    <div class="brand-container">
+      <div class="brand-logo">
+        <span class="logo-icon">⚡</span>
+      </div>
+      <div>
+        <div class="brand-title">ApexTrade <span class="badge-ai">AUTONOMOUS BOT</span></div>
+        <div class="brand-subtitle">Zero-Risk Real-Time Paper Trading Engine</div>
+      </div>
+    </div>
+
+    <!-- Live Market Ticker Strip -->
+    <div class="market-bar" id="marketBar">
+      <div class="pair-selector-wrap">
+        <label for="symbolSelect">Market:</label>
+        <select id="symbolSelect">
+          <option value="BTCUSDT">₿ BTC/USDT</option>
+          <option value="ETHUSDT">Ξ ETH/USDT</option>
+          <option value="SOLUSDT">◎ SOL/USDT</option>
+          <option value="BNBUSDT">🔶 BNB/USDT</option>
+          <option value="DOGEUSDT">Ð DOGE/USDT</option>
+        </select>
+      </div>
+
+      <div class="ticker-item">
+        <span class="ticker-label">Price</span>
+        <span class="ticker-value" id="livePrice">$0.00</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-label">24h Change</span>
+        <span class="ticker-value" id="liveChange">0.00%</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-label">24h High</span>
+        <span class="ticker-value" id="liveHigh">$0.00</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-label">24h Low</span>
+        <span class="ticker-value" id="liveLow">$0.00</span>
+      </div>
+    </div>
+
+    <!-- Bot Master Control -->
+    <div class="nav-controls">
+      <div class="mode-tag">
+        <span class="pulse-dot active"></span>
+        <span>LIVE FEED</span>
+      </div>
+
+      <div class="bot-switch-container">
+        <span class="switch-label">Auto-Bot:</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="botToggle" />
+          <span class="slider"></span>
+        </label>
+        <span id="botStateLabel" class="bot-state-text state-off">OFF</span>
+      </div>
+
+      <button id="guideBtn" class="btn btn-outline" title="Trading concepts explained in simple English">📖 Trading 101</button>
+      <button id="resetBtn" class="btn btn-danger-outline" title="Reset virtual cash balance">🔄 Reset Account</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="dashboard-content">
+    <!-- Notice Banner for beginners -->
+    <div class="simulation-banner">
+      <div class="banner-icon">🛡️</div>
+      <div class="banner-text">
+        <strong>Paper Trading Active ($0 Real Money Required):</strong>
+        This bot connects to live public market feeds, executing simulated trades with virtual dollars. You can safely explore algorithmic strategies and past-year backtesting with zero financial risk.
+      </div>
+    </div>
+
+    <!-- Portfolio Metric Cards -->
+    <section class="metrics-grid">
+      <div class="metric-card glow-cyan">
+        <div class="metric-header">
+          <span class="metric-title">Total Portfolio Value</span>
+          <span class="metric-badge" id="pnlBadge">+0.00%</span>
+        </div>
+        <div class="metric-val" id="totalEquity">$10,000.00</div>
+        <div class="metric-sub" id="netProfitSub">Net P&L: <span id="netProfitVal">$0.00</span></div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Virtual Cash Available</span>
+          <span class="metric-icon">💵</span>
+        </div>
+        <div class="metric-val" id="cashBalance">$10,000.00</div>
+        <div class="metric-sub">Liquid purchasing power</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Open Position</span>
+          <span class="metric-icon">📊</span>
+        </div>
+        <div class="metric-val" id="openPositionVal">No Active Trade</div>
+        <div class="metric-sub" id="unrealizedPnlSub">Unrealized P&L: <span>$0.00</span></div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Bot Performance</span>
+          <span class="metric-icon">🏆</span>
+        </div>
+        <div class="metric-val" id="winRateVal">0% Win Rate</div>
+        <div class="metric-sub"><span id="completedTradesCount">0</span> closed trades executed</div>
+      </div>
+    </section>
+
+    <!-- Mid Section: Chart & Strategy Controls -->
+    <section class="main-split">
+      <!-- Left Column: Chart & Live Signal -->
+      <div class="chart-panel card">
+        <div class="card-header">
+          <div class="chart-header-left">
+            <h2 id="chartTitle">BTC/USDT Real-Time Market</h2>
+            <div class="timeframe-pills">
+              <button class="pill active" data-interval="1h">1H</button>
+              <button class="pill" data-interval="4h">4H</button>
+              <button class="pill" data-interval="1d">1D</button>
+            </div>
+          </div>
+          <div class="chart-indicators-legend">
+            <span class="legend-item"><span class="legend-color ema-fast"></span> Fast EMA (9)</span>
+            <span class="legend-item"><span class="legend-color ema-slow"></span> Slow EMA (21)</span>
+          </div>
+        </div>
+
+        <!-- Canvas for Live Chart -->
+        <div class="chart-container">
+          <canvas id="marketChart"></canvas>
+        </div>
+
+        <!-- Live Signal Bar -->
+        <div class="signal-box" id="signalBox">
+          <div class="signal-header">
+            <div class="signal-action-pill signal-hold" id="signalAction">HOLD</div>
+            <div class="signal-title" id="signalSummary">Analyzing real-time indicators...</div>
+          </div>
+          <div class="signal-detail" id="signalExplanation">
+            The strategy engine is checking momentum and price indicators for safe entry conditions.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Strategy Engine & 1-Year Backtesting -->
+      <div class="strategy-panel card">
+        <div class="card-header">
+          <h2>Strategy & 1-Year Backtest</h2>
+          <span class="badge-tag">HISTORICAL ANALYSIS</span>
+        </div>
+
+        <div class="strategy-settings-form">
+          <div class="form-group">
+            <label for="strategySelect">Automated Strategy:</label>
+            <select id="strategySelect" class="form-control">
+              <option value="ema_crossover">EMA Crossover (Trend Following)</option>
+              <option value="rsi_reversal">RSI Mean Reversion (Dip Buyer)</option>
+              <option value="macd_momentum">MACD Momentum Breakout</option>
+            </select>
+            <small class="form-help" id="strategyDesc">
+              Buys when short-term momentum crosses above long-term trend.
+            </small>
+          </div>
+
+          <div class="risk-controls-grid">
+            <div class="form-group">
+              <label for="stopLossInput">Stop-Loss Protection:</label>
+              <div class="input-with-unit">
+                <input type="number" id="stopLossInput" value="2.5" step="0.5" min="1" max="15" />
+                <span>%</span>
+              </div>
+              <small class="form-help">Automatically cuts losses if trade drops this much</small>
+            </div>
+
+            <div class="form-group">
+              <label for="takeProfitInput">Take-Profit Target:</label>
+              <div class="input-with-unit">
+                <input type="number" id="takeProfitInput" value="5.0" step="0.5" min="2" max="30" />
+                <span>%</span>
+              </div>
+              <small class="form-help">Automatically locks in profit when target is reached</small>
+            </div>
+          </div>
+
+          <div class="backtest-action-wrap">
+            <button id="runBacktestBtn" class="btn btn-primary w-100">
+              <span class="btn-icon">⚡</span> Run 1-Year Historical Backtest
+            </button>
+          </div>
+        </div>
+
+        <!-- Backtest Results Area -->
+        <div class="backtest-results-wrap" id="backtestResults">
+          <div class="backtest-placeholder">
+            Click <strong>"Run 1-Year Historical Backtest"</strong> to simulate how this strategy performed over the last 365 days on real market data.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Section: Trade Log & Quick Actions -->
+    <section class="bottom-split">
+      <!-- Live Orders & Trade History -->
+      <div class="card trade-history-card">
+        <div class="card-header">
+          <h2>Simulated Trade Executions</h2>
+          <span class="badge-tag">REAL-TIME LOG</span>
+        </div>
+        <div class="table-container">
+          <table class="trade-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Type</th>
+                <th>Asset</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Value</th>
+                <th>P&L ($)</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody id="tradeLogBody">
+              <tr>
+                <td colspan="8" class="text-center empty-state">No trades executed yet. Toggle the bot ON or place a test order below.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Quick Manual Paper Trade Panel -->
+      <div class="card manual-panel">
+        <div class="card-header">
+          <h2>Manual Paper Trade</h2>
+          <span class="badge-tag">INSTANT TEST</span>
+        </div>
+        <div class="manual-trade-body">
+          <p class="manual-help">Test placing orders manually without waiting for bot signals:</p>
+          <div class="trade-amount-wrap">
+            <label>Trade Amount (Virtual USD):</label>
+            <input type="number" id="manualAmount" value="1000" min="10" step="100" class="form-control" />
+          </div>
+          <div class="manual-btns">
+            <button id="manualBuyBtn" class="btn btn-success flex-1">🟢 Paper BUY</button>
+            <button id="manualSellBtn" class="btn btn-danger flex-1">🔴 Paper SELL</button>
+          </div>
+          <div class="manual-tip">
+            💡 Trades execute immediately at the current live market price with simulated 0.1% spot fee.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Trading 101 Modal -->
+  <div class="modal-overlay" id="guideModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>🎓 Trading 101: A Beginner's Guide</h2>
+        <button class="modal-close" id="modalCloseBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="guide-section">
+          <h3>1. Why Can't Anyone Trade with $0 Real Money?</h3>
+          <p>
+            Real crypto exchanges are like digital supermarkets: to buy Bitcoin or Ethereum, you must provide currency (US Dollars, Euros, etc.). No legitimate platform gives away free crypto to trade without collateral. That is why professional traders test their algorithms first using <strong>Paper Trading (Simulation)</strong>.
+          </p>
+        </div>
+
+        <div class="guide-section">
+          <h3>2. What is Paper Trading?</h3>
+          <p>
+            Paper trading uses <strong>100% real, live market prices</strong>, but your orders are recorded virtually in your simulated account. It allows you to learn market movements, test bot logic, and experience wins and losses without risking a single dollar.
+          </p>
+        </div>
+
+        <div class="guide-section">
+          <h3>3. What are Moving Averages (EMA)?</h3>
+          <p>
+            An <strong>Exponential Moving Average (EMA)</strong> smooths out choppy price noise. When a fast-reacting average (e.g. 9 periods) crosses above a slower average (e.g. 21 periods), it indicates rising buyer momentum (called a <em>Golden Cross</em>). When it crosses below, it indicates downward momentum (a <em>Death Cross</em>).
+          </p>
+        </div>
+
+        <div class="guide-section">
+          <h3>4. What is the Relative Strength Index (RSI)?</h3>
+          <p>
+            RSI measures speed and change of price moves on a 0 to 100 scale. Readings below 30 suggest the asset is <strong>oversold</strong> (cheap, potential bounce). Readings above 70 indicate it is <strong>overbought</strong> (expensive, potential pullback).
+          </p>
+        </div>
+
+        <div class="guide-section">
+          <h3>5. The Golden Rule of Risk Management</h3>
+          <p>
+            Never trade without a <strong>Stop-Loss</strong>. A Stop-Loss automatically exits your position if the price drops by a set percentage (e.g. 2.5%), protecting your capital so a small mistake never becomes a catastrophic loss.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="modalUnderstoodBtn">Got it, let's trade!</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
